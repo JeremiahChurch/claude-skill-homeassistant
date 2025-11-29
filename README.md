@@ -14,13 +14,14 @@
 ### Quick Skill Check
 Verify Claude can see and use this skill:
 
-![Skill Check Demo](skill-check.gif)
+<video src="skill-check.mp4" width="100%" autoplay muted loop controls></video>
 
+*Shows Claude recognizing the skill and loading Home Assistant expertise*
 
 ### Full Workflow Demo
-Watch the complete workflow in action - end to end:
+Watch the complete workflow in action - end to end (3x speed):
 
-![Live Workflow Demo](live-demo.gif)
+<video src="live-demo.mp4" width="100%" autoplay muted loop controls></video>
 
 *Complete automation development cycle including deployment, testing, log analysis, and git workflow*
 
