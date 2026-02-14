@@ -1,6 +1,6 @@
 ---
 name: home-assistant-manager
-description: Expert-level Home Assistant configuration management with efficient deployment workflows (git and rapid scp iteration), remote CLI access via SSH and hass-cli, automation verification protocols, log analysis, reload vs restart optimization, and comprehensive Lovelace dashboard management for tablet-optimized UIs. Includes template patterns, card types, debugging strategies, and real-world examples.
+description: Expert-level Home Assistant configuration management using the HA MCP server as the primary interaction method. Includes direct entity/service/automation/dashboard control via MCP tools, efficient deployment workflows (git and rapid scp iteration), remote CLI access via SSH and hass-cli as fallbacks, automation verification protocols, log analysis, reload vs restart optimization, and comprehensive Lovelace dashboard management for tablet-optimized UIs. Includes template patterns, card types, debugging strategies, and real-world examples.
 ---
 
 # Home Assistant Manager
@@ -9,7 +9,8 @@ Expert-level Home Assistant configuration management with efficient workflows, r
 
 ## Core Capabilities
 
-- Remote Home Assistant instance management via SSH and hass-cli
+- **Direct HA interaction via MCP tools** (preferred for most operations — entity queries, service calls, automation/dashboard management, template evaluation)
+- Remote Home Assistant instance management via SSH and hass-cli (fallback)
 - Smart deployment workflows (git-based and rapid iteration)
 - Configuration validation and safety checks
 - Automation testing and verification
@@ -26,13 +27,113 @@ Before starting, verify the environment has:
 2. `hass-cli` installed locally
 3. Environment variables loaded (HASS_SERVER, HASS_TOKEN)
 4. Git repository connected to HA `/config` directory
-5. Context7 MCP server with Home Assistant docs (recommended)
+5. Home Assistant MCP server connected to your HA instance (strongly recommended — enables direct entity/service/automation/dashboard interaction without SSH or hass-cli). Setup: visit [ha-mcp wizard](https://homeassistant-ai.github.io/ha-mcp/setup/) or run `claude mcp add --transport http home-assistant http://<HA_IP>:<PORT>/<SECRET_PATH>`
+
+## Interaction Method Decision Matrix
+
+**Use Home Assistant MCP tools (preferred for most operations):**
+- ✅ Getting entity states and attributes → `ha_get_state`, `ha_get_entity`
+- ✅ Searching for entities → `ha_search_entities`
+- ✅ Calling services (reload, trigger, turn on/off) → `ha_call_service`
+- ✅ Bulk entity control → `ha_bulk_control`
+- ✅ Getting/setting automations → `ha_config_get_automation`, `ha_config_set_automation`
+- ✅ Getting/setting scripts → `ha_config_get_script`, `ha_config_set_script`
+- ✅ Dashboard management → `ha_config_get_dashboard`, `ha_config_set_dashboard`
+- ✅ Testing Jinja2 templates → `ha_eval_template`
+- ✅ Viewing history/statistics → `ha_get_history`, `ha_get_statistics`
+- ✅ System health and config info → `ha_get_system_health`, `ha_config_info`
+- ✅ Area/floor/label management → `ha_config_list_areas`, `ha_config_set_area`
+- ✅ Helper management → `ha_config_list_helpers`, `ha_config_set_helper`
+- ✅ Checking configuration validity → `ha_check_config`
+- ✅ Logbook entries → `ha_get_logbook`
+- ✅ Device info → `ha_get_device`
+- ✅ HACS management → `ha_hacs_list_installed`, `ha_hacs_search`
+- ✅ Getting an overview of the system → `ha_get_overview`
+- ✅ Deep search across entities/devices/areas → `ha_deep_search`
+
+**Use SSH only when MCP can't do it:**
+- 🔧 Viewing raw HA core logs → `ssh root@homeassistant.local "ha core logs"`
+- 🔧 Restarting HA core → `ssh root@homeassistant.local "ha core restart"` (or `ha_restart` MCP tool)
+- 🔧 Git pull on the remote → `ssh root@homeassistant.local "cd /config && git pull"`
+- 🔧 File-level operations on the HA host
+
+**Use local file editing for:**
+- 📝 `configuration.yaml` changes (template sensors, Modbus, MQTT platform config)
+- 📝 `automations.yaml` bulk editing
+- 📝 ESPHome device configs
+- 📝 Any YAML files tracked in this git repo
+
+**Use scp for rapid iteration:**
+- 🚀 Quick-deploying file changes to test before committing
+
+## Home Assistant MCP Tools
+
+The HA MCP server provides direct API access to your Home Assistant instance. Use `ToolSearch` with `+home-assistant` to discover available tools. Key tools:
+
+### State & Entity Queries
+```
+ha_get_state          — Get current state of an entity
+ha_get_entity         — Get full entity details with attributes
+ha_search_entities    — Search entities by name, domain, or area
+ha_get_bulk_status    — Get status of multiple entities at once
+ha_get_overview       — High-level overview of your HA instance
+ha_deep_search        — Search across entities, devices, areas, and more
+```
+
+### Service Calls & Control
+```
+ha_call_service       — Call any HA service (reload, trigger, turn_on, etc.)
+ha_bulk_control       — Control multiple entities at once
+ha_set_entity         — Update entity state or attributes
+```
+
+### Automation & Script Management
+```
+ha_config_get_automation   — Read automation configuration
+ha_config_set_automation   — Create or update an automation
+ha_config_remove_automation — Delete an automation
+ha_config_get_script       — Read script configuration
+ha_config_set_script       — Create or update a script
+```
+
+### Dashboard Management
+```
+ha_config_get_dashboard           — Read dashboard configuration
+ha_config_set_dashboard           — Create or update dashboard content
+ha_config_update_dashboard_metadata — Update dashboard title, icon, etc.
+ha_config_delete_dashboard        — Delete a dashboard
+ha_dashboard_find_card            — Find specific cards in dashboards
+ha_get_card_types                 — List available card types
+ha_get_card_documentation         — Get docs for a specific card type
+```
+
+### Templates & Debugging
+```
+ha_eval_template      — Evaluate Jinja2 templates (replaces Dev Tools → Template)
+ha_get_history        — Get entity history over time
+ha_get_statistics     — Get long-term statistics
+ha_get_logbook        — Get logbook entries
+ha_get_system_health  — System health information
+ha_check_config       — Validate configuration
+```
+
+### Infrastructure
+```
+ha_config_list_areas   — List all areas
+ha_config_set_area     — Create or update an area
+ha_config_list_floors  — List all floors
+ha_config_list_helpers — List all helpers
+ha_config_set_helper   — Create or update a helper
+ha_config_info         — Get HA configuration info
+ha_restart             — Restart Home Assistant
+ha_reload_core         — Reload core configuration
+```
 
 ## Remote Access Patterns
 
 ### Using hass-cli (Local, via REST API)
 
-All `hass-cli` commands use environment variables automatically:
+Fallback when MCP tools are unavailable. All `hass-cli` commands use environment variables automatically:
 
 ```bash
 # List entities
@@ -48,18 +149,17 @@ hass-cli service call automation.trigger --arguments entity_id=automation.name
 
 ### Using SSH for HA CLI
 
+Use for operations not covered by MCP tools:
+
 ```bash
-# Check configuration validity
-ssh root@homeassistant.local "ha core check"
-
-# Restart Home Assistant
-ssh root@homeassistant.local "ha core restart"
-
-# View logs
+# View raw logs (MCP doesn't stream logs)
 ssh root@homeassistant.local "ha core logs"
 
 # Tail logs with grep
 ssh root@homeassistant.local "ha core logs | grep -i error | tail -20"
+
+# Git pull after pushing changes
+ssh root@homeassistant.local "cd /config && git pull"
 ```
 
 ## Deployment Workflows
@@ -128,14 +228,16 @@ git push
 **ALWAYS assess if reload is sufficient before requiring a full restart.**
 
 ### Can be reloaded (fast, preferred):
-- ✅ Automations: `hass-cli service call automation.reload`
-- ✅ Scripts: `hass-cli service call script.reload`
-- ✅ Scenes: `hass-cli service call scene.reload`
-- ✅ Template entities: `hass-cli service call template.reload`
-- ✅ Groups: `hass-cli service call group.reload`
-- ✅ Themes: `hass-cli service call frontend.reload_themes`
+All of these use `ha_call_service` via MCP (preferred) or `hass-cli service call`:
+- ✅ Automations: `automation.reload`
+- ✅ Scripts: `script.reload`
+- ✅ Scenes: `scene.reload`
+- ✅ Template entities: `template.reload`
+- ✅ Groups: `group.reload`
+- ✅ Themes: `frontend.reload_themes`
 
 ### Require full restart:
+Use `ha_restart` via MCP or `ssh root@homeassistant.local "ha core restart"`:
 - ❌ Min/Max sensors and platform-based sensors
 - ❌ New integrations in configuration.yaml
 - ❌ Core configuration changes
@@ -152,18 +254,21 @@ ssh root@homeassistant.local "cd /config && git pull"
 ```
 
 ### Step 2: Check Configuration
-```bash
-ssh root@homeassistant.local "ha core check"
+```
+ha_check_config  (MCP — preferred)
+# or: ssh root@homeassistant.local "ha core check"
 ```
 
 ### Step 3: Reload
-```bash
-hass-cli service call automation.reload
+```
+ha_call_service → automation.reload  (MCP — preferred)
+# or: hass-cli service call automation.reload
 ```
 
 ### Step 4: Manually Trigger
-```bash
-hass-cli service call automation.trigger --arguments entity_id=automation.name
+```
+ha_call_service → automation.trigger, entity_id=automation.name  (MCP — preferred)
+# or: hass-cli service call automation.trigger --arguments entity_id=automation.name
 ```
 
 **Why trigger manually?**
@@ -172,9 +277,9 @@ hass-cli service call automation.trigger --arguments entity_id=automation.name
 - Catch errors immediately
 
 ### Step 5: Check Logs
-```bash
-sleep 3
-ssh root@homeassistant.local "ha core logs | grep -i 'automation_name' | tail -20"
+```
+ha_get_logbook → filter by automation entity  (MCP — for logbook entries)
+# or for raw logs: ssh root@homeassistant.local "ha core logs | grep -i 'automation_name' | tail -20"
 ```
 
 **Success indicators:**
@@ -195,13 +300,15 @@ ssh root@homeassistant.local "ha core logs | grep -i 'automation_name' | tail -2
 - Check logs for mobile_app messages
 
 **For device control:**
-```bash
-hass-cli state get switch.device_name
+```
+ha_get_state → switch.device_name  (MCP — preferred)
+# or: hass-cli state get switch.device_name
 ```
 
 **For sensors:**
-```bash
-hass-cli state get sensor.new_sensor
+```
+ha_get_state → sensor.new_sensor  (MCP — preferred)
+# or: hass-cli state get sensor.new_sensor
 ```
 
 ### Step 7: Fix and Re-test if Needed
@@ -475,13 +582,14 @@ python3 -m json.tool .storage/lovelace.control_center > /dev/null
 
 **3. Test Templates:**
 ```
-Home Assistant → Developer Tools → Template
-Paste template to test before adding to dashboard
+ha_eval_template  (MCP — preferred, test templates directly)
+# or: Home Assistant → Developer Tools → Template
 ```
 
 **4. Verify Entities:**
-```bash
-hass-cli state get binary_sensor.front_door
+```
+ha_get_state → binary_sensor.front_door  (MCP — preferred)
+# or: hass-cli state get binary_sensor.front_door
 ```
 
 **5. Clear Browser Cache:**
@@ -552,35 +660,45 @@ hass-cli state get binary_sensor.front_door
 
 ## Common Commands Quick Reference
 
-```bash
-# Configuration
-ssh root@homeassistant.local "ha core check"
-ssh root@homeassistant.local "ha core restart"
+### Via HA MCP (preferred for most operations)
+```
+ha_get_state             → Get entity state
+ha_search_entities       → Find entities by name/domain/area
+ha_call_service          → Call any service (reload, trigger, turn_on, etc.)
+ha_check_config          → Validate configuration
+ha_restart               → Restart Home Assistant
+ha_eval_template         → Test Jinja2 templates
+ha_get_logbook           → View logbook entries
+ha_config_get_automation → Read automation config
+ha_config_set_automation → Create/update automation
+ha_config_get_dashboard  → Read dashboard config
+ha_config_set_dashboard  → Create/update dashboard
+ha_get_overview          → Quick system overview
+ha_deep_search           → Search across everything
+```
 
-# Logs
+### Via SSH (when MCP can't do it)
+```bash
+# Raw logs (MCP doesn't stream raw core logs)
 ssh root@homeassistant.local "ha core logs | tail -50"
 ssh root@homeassistant.local "ha core logs | grep -i error | tail -20"
 
-# State/Services
-hass-cli state list
-hass-cli state get entity.name
-hass-cli service call automation.reload
-hass-cli service call automation.trigger --arguments entity_id=automation.name
+# Git pull after pushing changes
+ssh root@homeassistant.local "cd /config && git pull"
+```
 
-# Deployment
+### File Deployment
+```bash
+# Git workflow (final changes)
 git add . && git commit -m "..." && git push
 ssh root@homeassistant.local "cd /config && git pull"
+
+# scp workflow (rapid iteration)
 scp file.yaml root@homeassistant.local:/config/
-
-# Dashboard deployment
 scp .storage/lovelace.my_dashboard root@homeassistant.local:/config/.storage/
-python3 -m json.tool .storage/lovelace.my_dashboard > /dev/null  # Validate JSON
 
-# Quick test cycle
-scp automations.yaml root@homeassistant.local:/config/
-hass-cli service call automation.reload
-hass-cli service call automation.trigger --arguments entity_id=automation.name
-ssh root@homeassistant.local "ha core logs | grep -i 'automation' | tail -10"
+# Validate JSON locally
+python3 -m json.tool .storage/lovelace.my_dashboard > /dev/null
 ```
 
 ## Best Practices Summary
@@ -591,8 +709,8 @@ ssh root@homeassistant.local "ha core logs | grep -i 'automation' | tail -10"
 4. **Check logs** for errors after every change
 5. **Use scp for rapid iteration**, git for final changes
 6. **Verify outcomes** - don't assume it worked
-7. **Use Context7** for current documentation
-8. **Test templates in Dev Tools** before adding to dashboards
+7. **Use HA MCP tools** as the primary way to interact with HA (states, services, automations, dashboards, templates)
+8. **Test templates with `ha_eval_template`** before adding to dashboards
 9. **Validate JSON syntax** before deploying dashboards
 10. **Test on actual device** for tablet dashboards
 11. **Color-code status** for visual feedback (red/green/amber)
@@ -601,27 +719,36 @@ ssh root@homeassistant.local "ha core logs | grep -i 'automation' | tail -10"
 ## Workflow Decision Tree
 
 ```
+Query / Read-only Operation
+├─ Entity state? → ha_get_state (MCP)
+├─ Search entities? → ha_search_entities (MCP)
+├─ Test template? → ha_eval_template (MCP)
+├─ View history? → ha_get_history (MCP)
+├─ System overview? → ha_get_overview (MCP)
+└─ Raw logs? → SSH (only option)
+
 Configuration Change Needed
-├─ Is this final/tested?
-│  ├─ YES → Use git workflow
-│  └─ NO → Use scp workflow
-├─ Check configuration valid
-├─ Deploy (git pull or scp)
+├─ Is it a YAML file change?
+│  ├─ YES → Edit locally, then deploy:
+│  │  ├─ Final/tested? → git workflow
+│  │  └─ Iterating? → scp workflow
+│  └─ NO (automation/script/dashboard via API):
+│     └─ Use MCP tools directly (ha_config_set_*)
+├─ Check config → ha_check_config (MCP)
 ├─ Needs restart?
-│  ├─ YES → ha core restart
-│  └─ NO → Use appropriate reload
-├─ Verify in logs
-└─ Test outcome
+│  ├─ YES → ha_restart (MCP)
+│  └─ NO → ha_call_service → appropriate reload (MCP)
+├─ Verify → ha_get_logbook / ha_get_state (MCP)
+└─ Check raw logs if needed → SSH
 
 Dashboard Change Needed
-├─ Make changes locally
-├─ Deploy via scp for testing
-├─ Refresh browser (Ctrl+F5)
+├─ Reading/inspecting → ha_config_get_dashboard (MCP)
+├─ Small updates → ha_config_set_dashboard (MCP)
+├─ Major rework → Edit locally + scp for rapid iteration
 ├─ Test on target device
-├─ Iterate until perfect
 └─ Commit to git when stable
 ```
 
 ---
 
-This skill encapsulates efficient Home Assistant management workflows developed through iterative optimization and real-world dashboard development. Apply these patterns to any Home Assistant instance for reliable, fast, and safe configuration management.
+This skill encapsulates efficient Home Assistant management workflows using the HA MCP server as the primary interaction method, with SSH and hass-cli as fallbacks. The HA MCP provides direct API access for entity queries, service calls, automation/dashboard management, and template evaluation — use it for all non-file-modification operations. Apply these patterns to any Home Assistant instance for reliable, fast, and safe configuration management.

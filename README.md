@@ -55,7 +55,7 @@ This Claude Code skill transforms Claude into a **Home Assistant expert** that h
 ### Workflow Optimization
 - **Git + scp Hybrid**: Uses git for version control, scp for rapid iteration
 - **No Restart for Dashboards**: Deploys dashboard changes with just browser refresh
-- **Context7 Integration**: Leverages official HA documentation via MCP when available
+- **HA MCP Integration**: Uses Home Assistant MCP server as the primary interaction method for entity queries, service calls, automation/dashboard management, and template evaluation
 - **Deployment Decision Tree**: Guides through the optimal workflow based on change type
 
 ## 📦 Installation
@@ -309,12 +309,35 @@ git remote add origin your-repo-url
 # Claude should be run from this directory
 ```
 
-### Context7 MCP (Optional but Recommended)
+### Home Assistant MCP Server (Strongly Recommended)
+
+The HA MCP server provides direct API access to your Home Assistant instance — entity queries, service calls, automation/dashboard management, template evaluation, and more. It is the preferred interaction method for all non-file-modification operations.
+
+**Setup via the interactive wizard (easiest):**
+
+Visit [ha-mcp setup wizard](https://homeassistant-ai.github.io/ha-mcp/setup/), select **Claude Code** as your client, choose your connection type and platform, and follow the generated instructions.
+
+**Manual setup for Claude Code (HTTP transport):**
+
+1. Install and start the ha-mcp server (via Home Assistant Add-on, uvx, or Docker — see [ha-mcp docs](https://homeassistant-ai.github.io/ha-mcp/setup/))
+2. Add it to your Claude Code project:
+
 ```bash
-# Add Context7 for official HA documentation
-claude mcp add --transport http context7 https://mcp.context7.com/mcp \
-  --header "CONTEXT7_API_KEY: your_api_key"
+claude mcp add --transport http home-assistant http://<HA_IP>:<PORT>/<SECRET_PATH>
 ```
+
+For example:
+```bash
+claude mcp add --transport http home-assistant http://10.10.67.45:9583/private_yourSecretPath
+```
+
+**Manual setup for Claude Code (stdio transport — local machine):**
+
+```bash
+claude mcp add home-assistant -- uvx ha-mcp --homeassistant-url http://<HA_IP>:8123 --homeassistant-token <YOUR_LONG_LIVED_TOKEN>
+```
+
+Once configured, all `ha_*` MCP tools (entity state, service calls, automations, dashboards, templates, etc.) become available directly in Claude Code.
 
 ## 🎨 Use Cases
 
